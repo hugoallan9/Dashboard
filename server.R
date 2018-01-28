@@ -7,10 +7,15 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
-library(dplyr)
-ejecucionMes <- read.csv('EjecucionMensual.csv')
+require(treemap)
+require(dplyr)
+require(shiny)
+require(gridBase)
+require(RColorBrewer)
+require(plotly)
 
+ejecucionMes <- read.csv('EjecucionMensual.csv')
+entidad <- read.csv('Entidad.csv')
 
 
 # Define server logic required to draw a histogram
@@ -23,6 +28,7 @@ shinyServer(function(input, output) {
   condition <- reactive({
     refresh = detalleGasto()
     print(refresh)
+    result = 0
     if( !is.null(refresh) ){
       if( refresh%%2 == 0){
         result = 0
@@ -32,7 +38,8 @@ shinyServer(function(input, output) {
         result = 0
       }
     }
-    #return(result)
+    print(paste("El resultado es: ", result))
+    return(result)
   })
   
   output$condition <- renderText({
@@ -73,6 +80,35 @@ shinyServer(function(input, output) {
   
   detalleGasto=reactive({
     input$detalleGasto
+  })
+  
+  
+  gasto <- reactive({
+    entidad %>%
+      select(Ejercicio, Devengado, Entidad) %>%
+      filter(Ejercicio == input$year) %>%
+      group_by(Entidad) %>%
+      summarise(devengado = sum(Devengado))
+  })
+  
+  output$treemap1 <- renderPlot({ 
+    
+    par(mar=c(0,0,0,0), xaxs='i', yaxs='i') 
+    plot(c(0,1), c(0,1),axes=F, col="white")
+    vps <- baseViewports()
+    
+    temp=gasto()
+    .tm <<- treemap(temp, 
+                    index="Entidad", 
+                    vSize="devengado", 
+                    vColor="devengado",
+                    type="value",
+                    title = "",
+                    palette="Blues",
+                    border.col ="white",
+                    position.legend="right",
+                    fontsize.labels = 16,
+                    title.legend="")
   })
   
   

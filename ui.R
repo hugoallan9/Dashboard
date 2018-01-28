@@ -12,19 +12,35 @@ library(shiny)
 
 dashboardPage(
   dashboardHeader(),
-  dashboardSidebar(),
+  dashboardSidebar(
+    selectInput("year","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  )  
+  ),
   dashboardBody(
     conditionalPanel(
       condition = "output.condition == 0",
       fluidRow(
-      selectInput("year","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  ),
+      # selectInput("year","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  ),
       infoBoxOutput("progressBox"),
       infoBoxOutput("devengadoBox"),
       uiOutput("detalle")
-      ) 
+      )
+      ),
+      
+    conditionalPanel(
+      condition = "output.condition == 1",
+      fluidRow(
+        # selectInput("year1","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  ),
+        br(),
+        br(),
+        tags$h1("Detalle del Gasto ",style="text-align:center;color:blue;font-size:200%"),
+        tags$p("Click On Any Region To Get The Treemap Of That Region",style="text-align:center;color:purple"),
+        plotOutput("treemap1",height="600px",
+                   click="click_treemap_country")
+      )
+    )
 
 
     )
     
-  )
+  
 )
