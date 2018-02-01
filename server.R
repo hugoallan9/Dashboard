@@ -7,7 +7,7 @@
 #    http://shiny.rstudio.com/
 #
 
-library(treemap)
+require(treemap)
 #library(d3treeR)
 require(dplyr)
 require(shiny)
