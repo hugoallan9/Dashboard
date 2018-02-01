@@ -13,13 +13,13 @@ library(shiny)
 dashboardPage(
   dashboardHeader(),
   dashboardSidebar(
-    selectInput("year","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  )  
+    selectInput("year","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  ),
+    uiOutput("opcionesFiltro")
   ),
   dashboardBody(
     conditionalPanel(
       condition = "output.condition == 0",
       fluidRow(
-      # selectInput("year","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  ),
       infoBoxOutput("progressBox"),
       infoBoxOutput("devengadoBox"),
       uiOutput("detalle")
@@ -29,7 +29,6 @@ dashboardPage(
     conditionalPanel(
       condition = "output.condition == 1",
       fluidRow(
-        # selectInput("year1","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  ),
         br(),
         br(),
         tags$h1("Detalle del Gasto ",style="text-align:center;color:blue;font-size:200%"),
@@ -38,6 +37,7 @@ dashboardPage(
                    click="click_treemap_country")
       )
     )
+    
 
 
     )

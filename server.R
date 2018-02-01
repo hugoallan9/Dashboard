@@ -7,7 +7,8 @@
 #    http://shiny.rstudio.com/
 #
 
-require(treemap)
+library(treemap)
+library(d3treeR)
 require(dplyr)
 require(shiny)
 require(gridBase)
@@ -98,7 +99,7 @@ shinyServer(function(input, output) {
     vps <- baseViewports()
     
     temp=gasto()
-    .tm <<- treemap(temp, 
+    .tm <-   treemap(temp, 
                     index="Entidad", 
                     vSize="devengado", 
                     vColor="devengado",
@@ -108,7 +109,7 @@ shinyServer(function(input, output) {
                     border.col ="white",
                     position.legend="right",
                     fontsize.labels = 16,
-                    title.legend="")
+                    title.legend="Escala de colores")
   })
   
   
