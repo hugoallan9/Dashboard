@@ -8,7 +8,7 @@
 #
 
 library(treemap)
-library(d3treeR)
+#library(d3treeR)
 require(dplyr)
 require(shiny)
 require(gridBase)
