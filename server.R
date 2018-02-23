@@ -225,7 +225,6 @@ shinyServer(function(input, output) {
   
   output$mapa <- renderLeaflet({ 
   informacionMapa <- sp::merge(mapaJson, gasto(), by.x="Código.Departamento" )
-  View(informacionMapa)
   print(gasto())
   qpal <- colorQuantile("YlGn", informacionMapa$devengado, n = 5, na.color = "#bdbdbd")
 
