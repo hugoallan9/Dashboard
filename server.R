@@ -55,7 +55,7 @@ shinyServer(function(input, output) {
     input$visualizacion
     result = 0
     if( !is.null(refresh)){
-      if(retornoVisualizacion != "Código.Departamento" ){
+      if( is.null(retornoVisualizacion) || retornoVisualizacion != "Código.Departamento" ){
        if( refresh%%2 == 0 ){
           result = 0
          }else if(refresh%%2 == 1)
