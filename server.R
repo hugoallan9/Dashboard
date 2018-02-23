@@ -17,7 +17,7 @@ require(plotly)
 require(leaflet)
 ejecucionMes <- read.csv('EjecucionMensual.csv')
 entidad <- read.csv('Entidad.csv', sep =  ';')
-mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson",layer = "guatemala")
+mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson")
 #mapaJson <-  jsonlite::fromJSON("guatemala.geojson",layer = "guatemala")
 ### Handle cliks on a treemap
 tmLocate <-
