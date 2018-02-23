@@ -9,12 +9,14 @@
 
 library(shinydashboard)
 library(shiny)
+library(leaflet)
 
 dashboardPage(
   dashboardHeader(),
   dashboardSidebar(
     selectInput("year","Ejercicio fiscal" ,choices = c(1998:format(Sys.Date(), "%Y")), selected = format(Sys.Date(), "%Y")  ),
-    uiOutput("opcionesFiltro")
+    uiOutput("opcionesFiltro"),
+    uiOutput("tipoVisualizacion")
   ),
   dashboardBody(
     conditionalPanel(
@@ -34,9 +36,22 @@ dashboardPage(
         tags$h1("Detalle del Gasto ",style="text-align:center;color:blue;font-size:200%"),
         tags$p("Click On Any Region To Get The Treemap Of That Region",style="text-align:center;color:purple"),
         plotOutput("treemap1",height="600px",
-                   click="click_treemap_country")
+                   click="click_treemap")
+      )
+    ),
+    # ,
+    # 
+    conditionalPanel(
+      condition = "output.condition == 2",
+      fluidRow(
+        br(),
+        br(),
+        tags$h1("Mapa de Guatemala"),
+        leafletOutput("mapa", height = "600")
       )
     )
+    
+    
     
 
 
