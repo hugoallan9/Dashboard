@@ -10,7 +10,7 @@
 library(shinydashboard)
 library(shiny)
 library(leaflet)
-require(DT)
+#require(DT)
 
 dashboardPage(
   dashboardHeader(),

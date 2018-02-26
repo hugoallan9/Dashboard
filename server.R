@@ -15,7 +15,7 @@ require(gridBase)
 require(RColorBrewer)
 require(plotly)
 require(leaflet)
-require(DT)
+#require(DT)
 ejecucionMes <- read.csv('EjecucionMensual.csv')
 entidad <- read.csv('Entidad.csv', sep =  ';')
 mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson")
@@ -253,7 +253,7 @@ shinyServer(function(input, output) {
 
   })
   
-    output$tabla <- renderDataTable({ 
+    output$tabla <- DT::renderDataTable({ 
       datos <- as.data.frame( gasto() )
       print( datos )
       print ( class(datos) )
