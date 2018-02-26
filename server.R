@@ -257,7 +257,7 @@ shinyServer(function(input, output) {
       datos <- as.data.frame( gasto() )
       print( datos )
       print ( class(datos) )
-      datatable( datos, options = list(orderClasses = TRUE) )
+      DT::datatable( datos, options = list(orderClasses = TRUE) )
       })
     
   
