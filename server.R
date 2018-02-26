@@ -15,6 +15,7 @@ require(gridBase)
 require(RColorBrewer)
 require(plotly)
 require(leaflet)
+require(DT)
 ejecucionMes <- read.csv('EjecucionMensual.csv')
 entidad <- read.csv('Entidad.csv', sep =  ';')
 mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson")
@@ -48,6 +49,26 @@ shinyServer(function(input, output) {
     visualizacion()
   })
   
+  output$tipoVisualizacion <- renderUI({
+    input$filtro
+    vector = c()
+    v = visualizacion()
+    if(v  == '1'){
+      vector = c("Treemap" = "treemap",
+                 "Tabla" = "tabla",
+                 "Mapa departamental" = "Código.Departamento"
+      )
+    }else if(v == '0'){ 
+      vector = c("Treemap" = "treemap",
+                 "Tabla" = "tabla")
+    }
+    radioButtons("visualizacion","Escoja la forma de ver los datos",
+                 choices = vector
+    )
+    #actionButton("", em("Ver detalle del gasto",style="text-align:center;color:blue;font-size:200%"))
+  })
+  
+  
   condition <- reactive({
     refresh = detalleGasto()
     retornoVisualizacion = input$visualizacion
@@ -58,15 +79,19 @@ shinyServer(function(input, output) {
       if( is.null(retornoVisualizacion) || retornoVisualizacion != "Código.Departamento" ){
        if( refresh%%2 == 0 ){
           result = 0
-         }else if(refresh%%2 == 1)
+         }else if( refresh%%2 == 1 && retornoVisualizacion == "treemap"  )
            result =1
+        else if( refresh%%2 == 1 && retornoVisualizacion == "tabla")
+          result = 3   
       }
         else if( retornoVisualizacion == "Código.Departamento")
           if( refresh%%2 == 0 ){
             result = 0
-          }else if( refresh%%2 == 1 )
-           result = 2
-    }
+          }else if( retornoVisualizacion == "tabla" )
+           result = 3
+          else
+            result = 2
+      }
     print(paste("El resultado es: ", result))
     return(result)
   })
@@ -121,31 +146,13 @@ shinyServer(function(input, output) {
                              "Clasificación geográfica" = "Código.Departamento",
                              "Objeto del gasto",
                              "Económico del gasto"
-                 )
+                 ), selected="Entidad"
                  )
     #actionButton("", em("Ver detalle del gasto",style="text-align:center;color:blue;font-size:200%"))
   })
   
   
-  output$tipoVisualizacion <- renderUI({
-    input$filtro
-    vector = c()
-    v = visualizacion()
-    if(v  == '1'){
-      vector = c("Treemap" = "Treemap",
-                 "Tabla" = "tabla",
-                 "Mapa departamental" = "Código.Departamento"
-      )
-    }else if(v == '0'){ 
-      vector = c("Treemap" = "Treemap",
-                 "Tabla" = "tabla")
-    }
-    radioButtons("visualizacion","Escoja la forma de ver los datos",
-                 choices = vector
-    )
-    #actionButton("", em("Ver detalle del gasto",style="text-align:center;color:blue;font-size:200%"))
-  })
-  
+
   
   detalleGasto=reactive({
     input$detalleGasto
@@ -245,6 +252,13 @@ shinyServer(function(input, output) {
 
 
   })
+  
+    output$tabla <- renderDataTable({ 
+      datos <- as.data.frame( gasto() )
+      print( datos )
+      print ( class(datos) )
+      datatable( datos, options = list(orderClasses = TRUE) )
+      })
     
   
   

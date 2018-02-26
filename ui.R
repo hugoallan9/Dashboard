@@ -49,6 +49,15 @@ dashboardPage(
         tags$h1("Mapa de Guatemala"),
         leafletOutput("mapa", height = "600")
       )
+    ),
+    conditionalPanel(
+      condition = "output.condition == 3",
+      fluidRow(
+        br(),
+        br(),
+        tags$h1("Visualización con tabla"),
+        dataTableOutput("tabla")
+      )
     )
     
     
