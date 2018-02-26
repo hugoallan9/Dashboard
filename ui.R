@@ -57,7 +57,7 @@ dashboardPage(
         br(),
         br(),
         tags$h1("Visualización con tabla"),
-        dataTableOutput("tabla")
+        DT::dataTableOutput("tabla")
       )
     )
     
