@@ -17,7 +17,7 @@ require(plotly)
 require(leaflet)
 #require(DT)
 ejecucionMes <- read.csv('EjecucionMensual.csv')
-entidad <- read.csv('Entidad.csv', sep =  ';')
+entidad <- read.csv('Sabana_de_prueba_TF.csv', sep =  ';')
 mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson")
 #mapaJson <-  jsonlite::fromJSON("guatemala.geojson",layer = "guatemala")
 ### Handle cliks on a treemap
@@ -162,8 +162,7 @@ shinyServer(function(input, output) {
   gasto <- reactive({
     print( paste("La opción dada por el filtro es ",input$filtro )  )
     temp <- entidad %>%
-      select(Ejercicio,Devengado, input$filtro)%>%
-      filter(Ejercicio == input$year) %>%
+      select(Devengado, input$filtro)%>%
       group_by_(input$filtro) %>%
       summarise(devengado = sum(Devengado))
     return(temp)
