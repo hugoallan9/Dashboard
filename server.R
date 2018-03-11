@@ -19,10 +19,10 @@ require(leaflet)
 ejecucionMes <- read.csv('EjecucionMensual.csv')
 entidad <- read.csv('Sabana_de_prueba_TF.csv', sep =  ';')
 mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson")
+app.env <- new.env()
 #mapaJson <-  jsonlite::fromJSON("guatemala.geojson",layer = "guatemala")
 ### Handle cliks on a treemap
-tmLocate <-
-  function(coor, tmSave) {
+tmLocate <- function(coor, tmSave) {
     tm <- tmSave$tm
     
     # retrieve selected rectangle
@@ -34,13 +34,12 @@ tmLocate <-
     return(tm[rectInd[1], ])
     
   }
-#######
 
 
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-   
+  app.env <- new.env()
   output$condition <- renderText({
     condition()
   })
@@ -169,24 +168,25 @@ shinyServer(function(input, output) {
   })
   
   output$treemap1 <- renderPlot({
-    # col = getRecordFromTreeMap()
-    # print(col)
+     col = getRecordFromTreeMap()
+     print(app.env$tm$tm)
     par(mar=c(0,0,0,0), xaxs='i', yaxs='i') 
     plot(c(0,1), c(0,1),axes=F, col="white")
     vps <- baseViewports()
-    
+     variable <- input$filtro 
     temp=gasto()
-    .tm <-   treemap(temp, 
-                    index=input$filtro, 
+    .tm <<- treemap(temp, 
+                    index= variable, 
                     vSize="devengado", 
                     vColor="devengado",
                     type="value",
                     title = "",
-                    palette="Blues",
+                    palette="Purples",
                     border.col ="white",
                     position.legend="right",
                     fontsize.labels = 16,
                     title.legend="Escala de colores")
+    print(.tm$tm[1])
   })
   
   
@@ -201,12 +201,13 @@ shinyServer(function(input, output) {
     x <- input$click_treemap$x
     y <- input$click_treemap$y
     treemap_clicked$center <- c(x,y)
-    print(treemap_clicked$center)
+    print(paste("El centro es: ", treemap_clicked$center) )
     
     if(is.null(treemap_clicked$for_condition)){
       treemap_clicked$for_condition=c(x,y)
     }
     else{treemap_clicked$for_condition=NULL}
+    
   })
   
   getRecordFromTreeMap <- reactive({
@@ -216,7 +217,6 @@ shinyServer(function(input, output) {
     x <- (x - .tm$vpCoorX[1]) / (.tm$vpCoorX[2] - .tm$vpCoorX[1])
     y <- (y - .tm$vpCoorY[1]) / (.tm$vpCoorY[2] - .tm$vpCoorY[1])
     
-    
     l <- tmLocate(list(x=x, y=y), .tm)
     z=l[, 1:(ncol(l)-5)]
     
@@ -225,7 +225,7 @@ shinyServer(function(input, output) {
       return(NULL)
     
     col=as.character(z[,1])
-    print(col)
+    print(paste("La columna es ",col))
     #filter(pop_data,Country==col)
   })
   
