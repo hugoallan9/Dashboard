@@ -169,12 +169,20 @@ shinyServer(function(input, output) {
   
   output$treemap1 <- renderPlot({
      col = getRecordFromTreeMap()
+     temp=gasto()
+     if(is.null(col) )
+       print("El filtrado no es válido")
+     else{
+       print(names(temp)[1])
+       temp <- temp %>%
+         filter_( names(temp)[1] == col)
+     }
+       
      print(app.env$tm$tm)
     par(mar=c(0,0,0,0), xaxs='i', yaxs='i') 
     plot(c(0,1), c(0,1),axes=F, col="white")
     vps <- baseViewports()
      variable <- input$filtro 
-    temp=gasto()
     .tm <<- treemap(temp, 
                     index= variable, 
                     vSize="devengado", 
