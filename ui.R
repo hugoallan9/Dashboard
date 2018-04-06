@@ -36,8 +36,7 @@ dashboardPage(
         br(),
         tags$h1("Detalle del Gasto ",style="text-align:center;color:blue;font-size:200%"),
         tags$p("Click On Any Region To Get The Treemap Of That Region",style="text-align:center;color:purple"),
-        plotOutput("treemap1",height="600px",
-                   click="click_treemap")
+        plotOutput("treemap1",height="600px", click = "click_treemap")
       )
     ),
     # ,
@@ -56,8 +55,10 @@ dashboardPage(
       fluidRow(
         br(),
         br(),
+        uiOutput("filtroTabla"),
         tags$h1("Visualización con tabla"),
-        DT::dataTableOutput("tabla")
+        DT::dataTableOutput("tabla"),
+        uiOutput("Avanzar")
       )
     )
     
