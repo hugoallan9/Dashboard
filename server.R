@@ -596,12 +596,31 @@ shinyServer(function(input, output) {
      
      
      if( "Económico.Nivel.4" %in% nombres ){
-       listaExclusion <- c(listaExclusion, c("Económico.Nivel.Operativo") )
+       listaExclusion <- c(listaExclusion, "Económico.Nivel.Operativo" )
+     }
+     
+     if( "Programa" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Sub.Programa", "Proyecto", "Actividad", "Obra") )
+       nombres <- subset(nombres,  !( nombres %in% c("Sub.Programa","Proyecto", "Actividad", "Obra") ) )
+     }
+     
+     if( "Sub.Programa" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Proyecto", "Actividad", "Obra") )
+       nombres <- subset(nombres,  !( nombres %in% c("Proyecto", "Actividad", "Obra") ) )
+     }
+     
+     if( "Proyecto" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c( "Actividad", "Obra") )
+       nombres <- subset(nombres,  !( nombres %in% c("Actividad", "Obra") ) )
+     }
+     
+     if( "Actividad" %in% nombres ){
+       listaExclusion <- c(listaExclusion, "Obra" )
      }
      
      
      nombres <- nombres[-which( nombres %in% listaExclusion )]
-     return(listaExclusion)
+     return(nombres)
      
    }
     
