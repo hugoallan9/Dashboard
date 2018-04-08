@@ -76,10 +76,10 @@ push(jerarquia_economico_ida, "Económico.Nivel.2")
 jerarquia_economico_regreso = lifo()
 
 
-jerarquia_dimension_ida = lifo()
-jerarquia_valor_dimension = lifo()
+dimension_ida = NULL
+valor_dimension = NULL
 jerarquia_dimension_regreso = lifo()
-jerarquia_valor_dimension_dimension = lifo()
+jerarquia_valor_dimension_regreso = lifo()
 
 
 ### Handle cliks on a treemap
@@ -469,14 +469,13 @@ shinyServer(function(input, output) {
             summarise(Devengado =  sum(Devengado))
           
           tabla_dinamica <<- datos_tabla
-          View(tabla_dinamica)
           temporal <- temporal %>%
             select_(filtro,"Devengado") %>%
             rename_(Concepto = filtro)
           
-          #dimension_actual <<- filtro
-          push(jerarquia_dimension_ida,filtro)
-          push(jerarquia_valor_dimension,"")
+          dimension_ida <<- filtro
+          push(jerarquia_dimension_regreso,filtro)
+          push(jerarquia_valor_dimension_regreso,"")
           
           
           output$Atras <- renderUI({
@@ -485,8 +484,7 @@ shinyServer(function(input, output) {
           
         }else{
           col <- as.character(tabla_temporal$Concepto[variable] )
-          dimension_actual <- pop(jerarquia_dimension_ida)
-          push(jerarquia_dimension_regreso, dimension_actual)
+          dimension_actual <- dimension_ida
           .dots <- list(interp(~y==x, .values = list( y = as.name(dimension_actual), x = col ) ))
           tabla_dinamica <<- tabla_dinamica %>%
             filter_( .dots = .dots )
@@ -495,7 +493,10 @@ shinyServer(function(input, output) {
             group_by_(filtro) %>%
             summarise(Devengado =  sum(Devengado) ) %>%
             rename_( Concepto = filtro )
-            
+          push(jerarquia_dimension_regreso, dimension_actual)
+          dimension_ida <<- dimension_actual
+          valor_dimension <<- col
+          push(jerarquia_valor_dimension_regreso, col)  
         }
       }
       
@@ -503,19 +504,106 @@ shinyServer(function(input, output) {
 
     print( paste("La tabla dinamica es : ", dim(tabla_dinamica) ))
     if( !is.null( tabla_dinamica )  ){
+      
       valores_filtros <- sapply(colnames(tabla_dinamica),function( x ){
-        y <- as.factor( tabla_dinamica[,x] )
-        if( nlevels(y) > 0  ){
-          return(x)
+        y <- tabla_dinamica[,x] 
+        if( !is.numeric(y) ){
+          y <- as.factor( as.character(y) )
+          if( nlevels(y) >  1  ){
+            print(x)
+            return(x)
+          }
         }
       })
-      print( paste("Los posibles filtros son:", valores_filtros) )
-    }
+      valores_filtros <- plyr::compact(valores_filtros)
+      
+      valores_filtros <- obtenerListaFiltros(valores_filtros)
 
+      
+      
+      if (exists("filtro")) {
+        print(paste(" Si existe el filtro y es ", filtro))
+        valores_filtros <- valores_filtros[valores_filtros != filtro]
+      }else{
+        valores_filtros <- valores_filtros[valores_filtros != dimension_ida]
+      }
+      print( paste("Los posibles filtros son:", valores_filtros   ) )
+    }
+    jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso
+    jerarquia_dimension_regreso <<- jerarquia_dimension_regreso
+    
+    View(tabla_dinamica)
     return(temporal)
     }
 
-  
+   obtenerListaFiltros <- function( valores ){
+     listaExclusion <- NULL
+     nombres <- names(valores)
+     if( "Grupo" %in%  nombres ){
+       listaExclusion <- c(listaExclusion,"Sub.Grupo")
+     }
+     
+     if( "Entidad" %in% nombres ){
+       listaExclusion <- c(listaExclusion, "Unidad.Ejecutora" )
+     }
+     
+     if( "Región" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Departamento", "Municipio") )
+       nombres <- nombres[nombres != "Departamento"]
+       nombres <- nombres[nombres != "Municipio"]
+     }
+     
+     if( "Departamento" %in% nombres ){
+       listaExclusion <- c(listaExclusion,  "Municipio" )
+     }
+     
+     if( "Finalidad" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Función", "División") )
+       nombres <- nombres[nombres != "Función"]
+       nombres <- nombres[nombres != "División"]
+     }
+     
+     
+     if( "Función" %in% nombres ){
+       listaExclusion <- c(listaExclusion,  "División" )
+     }
+     
+     if( "Grupo.Gasto" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Sub.Grupo.Gasto", "Renglón") )
+       nombres <- nombres[nombres != "Sub.Grupo.Gasto"]
+       nombres <- nombres[nombres != "Renglón"]
+     }
+     
+     if( "Sub.Grupo.Gasto" %in% nombres ){
+       listaExclusion <- c(listaExclusion,  "Renglón" )
+     }
+     
+     
+     if( "Económico.Nivel.1" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Económico.Nivel.2", "Económico.Nivel.3","Económico.Nivel.4","Económico.Nivel.Operativo") )
+       nombres <- subset( nombres, !( nombres %in% c("Económico.Nivel.2","Económico.Nivel.3","Económico.Nivel.4","Económico.Nivel.Operativo") ) )
+    }
+     
+     if( "Económico.Nivel.2" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c( "Económico.Nivel.3","Económico.Nivel.4","Económico.Nivel.Operativo") )
+       nombres <- subset(nombres,  !(nombres %in% c("Económico.Nivel.3","Económico.Nivel.4","Económico.Nivel.Operativo") ) ) 
+     }
+     
+     if( "Económico.Nivel.3" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Económico.Nivel.4","Económico.Nivel.Operativo") )
+       nombres <- subset(nombres,  !( nombres %in% c("Económico.Nivel.4","Económico.Nivel.Operativo") ) )
+     }
+     
+     
+     if( "Económico.Nivel.4" %in% nombres ){
+       listaExclusion <- c(listaExclusion, c("Económico.Nivel.Operativo") )
+     }
+     
+     
+     nombres <- nombres[-which( nombres %in% listaExclusion )]
+     return(listaExclusion)
+     
+   }
     
     
     output$Avanzar <- renderUI({
