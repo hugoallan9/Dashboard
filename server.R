@@ -99,7 +99,7 @@ tmLocate <- function(coor, tmSave) {
 
 
 # Define server logic required to draw a histogram
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
   app.env <- new.env()
   output$condition <- renderText({
     condition()
@@ -498,7 +498,14 @@ shinyServer(function(input, output) {
           valor_dimension <<- col
           push(jerarquia_valor_dimension_regreso, col)  
         }
+        
+        
       }
+      
+
+    # Acá se actualizan los filtros -------------------------------------------
+      
+
       
     tabla_temporal <<- temporal
 
@@ -528,6 +535,8 @@ shinyServer(function(input, output) {
         valores_filtros <- valores_filtros[valores_filtros != dimension_ida]
       }
       print( paste("Los posibles filtros son:", valores_filtros   ) )
+      updateRadioButtons(session,"opcionTabla", choices = valores_filtros) 
+      
     }
     jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso
     jerarquia_dimension_regreso <<- jerarquia_dimension_regreso
