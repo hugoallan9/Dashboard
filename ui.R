@@ -58,7 +58,8 @@ dashboardPage(
         uiOutput("filtroTabla"),
         tags$h1("Visualización con tabla"),
         DT::dataTableOutput("tabla"),
-        uiOutput("Avanzar")
+        uiOutput("Avanzar"), 
+        uiOutput("Atras")
       )
     )
     

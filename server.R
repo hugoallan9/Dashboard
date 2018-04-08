@@ -29,7 +29,6 @@ datos_tabla <- read.csv('datos_tabla.csv', sep = ';')
 mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson")
 tabla_temporal <- NULL
 tabla_dinamica <- NULL
-dimension_actual <- NULL
 
 
 # Setting up the environmet for global variables --------------------------
@@ -75,6 +74,12 @@ push(jerarquia_economico_ida, "Económico.Nivel.2")
 
 
 jerarquia_economico_regreso = lifo()
+
+
+jerarquia_dimension_ida = lifo()
+jerarquia_valor_dimension = lifo()
+jerarquia_dimension_regreso = lifo()
+jerarquia_valor_dimension_dimension = lifo()
 
 
 ### Handle cliks on a treemap
@@ -469,10 +474,19 @@ shinyServer(function(input, output) {
             select_(filtro,"Devengado") %>%
             rename_(Concepto = filtro)
           
-          dimension_actual <<- filtro
+          #dimension_actual <<- filtro
+          push(jerarquia_dimension_ida,filtro)
+          push(jerarquia_valor_dimension,"")
+          
+          
+          output$Atras <- renderUI({
+            actionButton("retroceder_tabla", "Nivel Anterior")
+          })
+          
         }else{
           col <- as.character(tabla_temporal$Concepto[variable] )
-          dimen <- dimension_actual
+          dimension_actual <- pop(jerarquia_dimension_ida)
+          push(jerarquia_dimension_regreso, dimension_actual)
           .dots <- list(interp(~y==x, .values = list( y = as.name(dimension_actual), x = col ) ))
           tabla_dinamica <<- tabla_dinamica %>%
             filter_( .dots = .dots )
