@@ -76,10 +76,11 @@ push(jerarquia_economico_ida, "Económico.Nivel.2")
 jerarquia_economico_regreso = lifo()
 
 
-dimension_ida = NULL
-valor_dimension = NULL
-jerarquia_dimension_regreso = lifo()
-jerarquia_valor_dimension_regreso = lifo()
+dimension_ida = NULL # candidato a ser eliminado
+valor_dimension = NULL #candidato a ser eliminado
+
+jerarquia_dimension_regreso = list()  #cambio de estructura de datos
+jerarquia_valor_dimension_regreso = list() #antes era lifo, se pasa a lista
 
 
 ### Handle cliks on a treemap
@@ -474,8 +475,10 @@ shinyServer(function(input, output, session) {
             rename_(Concepto = filtro)
           
           dimension_ida <<- filtro
-          push(jerarquia_dimension_regreso,filtro)
-          push(jerarquia_valor_dimension_regreso,"")
+          #push(jerarquia_dimension_regreso,filtro)
+          jerarquia_dimension_regreso <- c(jerarquia_dimension_regreso,filtro)
+          #push(jerarquia_valor_dimension_regreso,"")
+          jerarquia_valor_dimension_regreso <- "NADA"
           
           
           output$Atras <- renderUI({
@@ -494,9 +497,11 @@ shinyServer(function(input, output, session) {
             summarise(Devengado =  sum(Devengado) ) %>%
             rename_( Concepto = filtro )
           dimension_ida <<- filtro # quizás lo correcto es filtro actualmente es dimension_actual
-          push(jerarquia_dimension_regreso, dimension_actual)
+          #push(jerarquia_dimension_regreso, dimension_actual)
+          jerarquia_dimension_regreso <- c(jerarquia_dimension_regreso, dimension_actual)
           valor_dimension <<- col
-          push(jerarquia_valor_dimension_regreso, col)  
+          #push(jerarquia_valor_dimension_regreso, col)
+          jerarquia_valor_dimension_regreso <- c(jerarquia_valor_dimension_regreso, col)
         }
         
         
@@ -546,7 +551,8 @@ shinyServer(function(input, output, session) {
     jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso
     jerarquia_dimension_regreso <<- jerarquia_dimension_regreso
     
-
+    print(jerarquia_dimension_regreso)
+    print(jerarquia_valor_dimension_regreso)
     return(temporal)
     }
 
