@@ -82,7 +82,16 @@ valor_dimension = NULL #candidato a ser eliminado
 jerarquia_dimension_regreso = list()  #cambio de estructura de datos
 jerarquia_valor_dimension_regreso = list() #antes era lifo, se pasa a lista
 
+opciones_filtro_inicio <- list("Institución","Finalidad","Región","Grupo",
+  "Económico del gasto" = "Económico.Nivel.1"
+)
 
+mascara_filtro_inicio <- list("Entidad",
+                           "Finalidad",
+                           "Clasificación geográfica",
+                           "Objeto del gasto" ,
+                           "Económico del gasto" 
+)
 ### Handle cliks on a treemap
 tmLocate <- function(coor, tmSave) {
     tm <- tmSave$tm
@@ -438,12 +447,7 @@ shinyServer(function(input, output, session) {
     
     output$filtroTabla <- renderUI({
       radioButtons("opcionTabla","¿Qué filtro desea aplicar?",
-                   choices = c("Institución" = "Entidad",
-                               "Finalidad" = "Finalidad",
-                               "Clasificación geográfica" = "Departamento",
-                               "Objeto del gasto" = "Objeto del gasto",
-                               "Económico del gasto" = "Economico"
-                   ), selected="Entidad", inline = T
+                   choices = mascara_filtro_inicio, selected="Entidad", choiceValues = opciones_filtro_inicio , inline = T
       )
       #actionButton("", em("Ver detalle del gasto",style="text-align:center;color:blue;font-size:200%"))
     })
@@ -511,43 +515,9 @@ shinyServer(function(input, output, session) {
 
       
     tabla_temporal <<- temporal
+    
+    actualizarFiltro(filtro)
 
-    print( paste("La tabla dinamica es : ", dim(tabla_dinamica) ))
-    if( !is.null( tabla_dinamica )  ){
-      
-      valores_filtros <- sapply(colnames(tabla_dinamica),function( x ){
-        y <- tabla_dinamica[,x] 
-        if( !is.numeric(y) ){
-          y <- as.factor( as.character(y) )
-          if( nlevels(y) >  1  ){
-            print(paste("Los niveles son",x, levels(y) ))
-            return(x)
-          }
-        }
-      })
-      
-      
-      
-      valores_filtros <- plyr::compact(valores_filtros)
-      
-      if (exists("filtro")) {
-        print(paste(" Si existe el filtro y es ", filtro))
-        valores_filtros <- valores_filtros[valores_filtros != filtro]
-      }else{
-        valores_filtros <- valores_filtros[valores_filtros != dimension_ida]
-      }
-      
-      valores_filtros <- obtenerListaFiltros(valores_filtros)
-
-      View(valores_filtros)
-      
-
-      View(tabla_dinamica)
-      print( paste("Los posibles filtros son:", valores_filtros   ) )
-      if(length(valores_filtros) > 0 )
-        updateRadioButtons(session,"opcionTabla", choices = valores_filtros, choiceValues =  valores_filtros) 
-      
-    }
     jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso
     jerarquia_dimension_regreso <<- jerarquia_dimension_regreso
     
@@ -556,10 +526,98 @@ shinyServer(function(input, output, session) {
     return(temporal)
     }
 
+    
+    actualizarFiltro <-  function(filtro="") {
+      if( !is.null( tabla_dinamica )  ){
+        
+        valores_filtros <- sapply(colnames(tabla_dinamica),function( x ){
+          y <- tabla_dinamica[,x] 
+          if( !is.numeric(y) ){
+            y <- as.factor( as.character(y) )
+            if( nlevels(y) >  1  ){
+              print(paste("Los niveles son",x, levels(y) ))
+              return(x)
+            }
+          }
+        })
+        
+        
+        
+        valores_filtros <- plyr::compact(valores_filtros)
+        
+        if (exists("filtro")) {
+          print(paste(" Si existe el filtro y es ", filtro))
+          valores_filtros <- valores_filtros[valores_filtros != filtro]
+        }else{
+          valores_filtros <- valores_filtros[valores_filtros != dimension_ida]
+        }
+        
+        valores_filtros <- obtenerListaFiltros(valores_filtros)
+        
+        #View(valores_filtros)
+        
+        
+        #View(tabla_dinamica)
+        print( paste("Los posibles filtros son:", valores_filtros   ) )
+        if(length(valores_filtros) > 0 )
+          updateRadioButtons(session,"opcionTabla", choices = valores_filtros, choiceValues =  valores_filtros, inline = T) 
+      }else{
+        updateRadioButtons(session,"opcionTabla", choices = mascara_filtro_inicio, choiceValues =  opciones_filtro_inicio, inline = T) 
+        }
+      
+    }
+    
+    construirTablaDinamica <- function(){
+      tabla_temp <- NULL
+      if( length(jerarquia_dimension_regreso  )  == 1 ){
+        tabla_temp <- datos_tabla %>%
+          summarise( Devengado = sum(Devengado) )%>%
+          mutate(Concepto = 'Gasto Total') 
+      }else{
+        contador <- 2:length(jerarquia_dimension_regreso)
+        for(z in  contador ){
+          a <- jerarquia_dimension_regreso[[z]]
+          b <- jerarquia_valor_dimension_regreso[[z]]
+            .dots <- list(interp( ~y==x, .values = list( y = as.name(jerarquia_dimension_regreso[[z]] ), x = jerarquia_valor_dimension_regreso[[z]] ) ) )                      
+            if( z == length(jerarquia_dimension_regreso) ) {
+              if( z == 2 ){
+                tabla_dinamica <<- datos_tabla 
+                tabla_temp <- datos_tabla %>%
+                  group_by_(jerarquia_dimension_regreso[[z]]) %>%
+                  summarise( Devengado = sum(Devengado) ) %>%
+                  rename_(Concepto = jerarquia_dimension_regreso[[z]])
+                dimension_ida <<- jerarquia_dimension_regreso[[z]]
+              }else{
+              tabla_dinamica <<- tabla_temp
+              tabla_temp <- tabla_temp %>%
+               group_by_(jerarquia_dimension_regreso[[z]]) %>%
+                summarise( Devengado = sum(Devengado) ) %>%
+                rename_(Concepto = jerarquia_dimension_regreso[[z]])
+                dimension_ida <<- jerarquia_dimension_regreso[[z]]
+              }
+            }else if( z == length(jerarquia_dimension_regreso )-1 ){
+              tabla_temp <- datos_tabla %>%
+                filter_(.dots = .dots)
+            }else{
+              tabla_temp <- tabla_temp %>%
+                filter_(.dots = .dots)
+            }
+        }
+      }
+      #Quitando el ultimo elemento
+      jerarquia_dimension_regreso <<- jerarquia_dimension_regreso[c(1:length(jerarquia_dimension_regreso) -1 )]
+      jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso[c(1:length(jerarquia_valor_dimension_regreso) -1 )]
+      #View(tabla_temp)
+      tabla_temporal <<- tabla_temp
+      View(tabla_temporal)
+      View(tabla_dinamica)
+    }
+    
+    
    obtenerListaFiltros <- function( valores ){
      listaExclusion <- NULL
      nombres <- names(valores)
-     View(nombres)
+     #View(nombres)
      if( "Grupo" %in%  nombres ){
        listaExclusion <- c(listaExclusion,"Sub.Grupo")
      }
@@ -668,6 +726,27 @@ shinyServer(function(input, output, session) {
 
 
     })
-  
+    
+    
+    observeEvent(input$retroceder_tabla, {
+      print("Botón atrás")
+      tablita <- construirTablaDinamica()
+      output$tabla <- DT::renderDataTable({ 
+        datos <- as.data.frame( tablita )
+        tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE) )
+      })
+      
+      actualizarFiltro()
+      
+      
+      
+      
+      
+    })
+
+      
+      
+      
+
   
 })
