@@ -493,8 +493,8 @@ shinyServer(function(input, output, session) {
             group_by_(filtro) %>%
             summarise(Devengado =  sum(Devengado) ) %>%
             rename_( Concepto = filtro )
-          push(jerarquia_dimension_regreso, dimension_actual)
           dimension_ida <<- dimension_actual
+          push(jerarquia_dimension_regreso, dimension_actual)
           valor_dimension <<- col
           push(jerarquia_valor_dimension_regreso, col)  
         }
@@ -503,8 +503,6 @@ shinyServer(function(input, output, session) {
       }
       
 
-    # Acá se actualizan los filtros -------------------------------------------
-      
 
       
     tabla_temporal <<- temporal
@@ -526,7 +524,7 @@ shinyServer(function(input, output, session) {
       
       valores_filtros <- obtenerListaFiltros(valores_filtros)
 
-      
+      View(valores_filtros)
       
       if (exists("filtro")) {
         print(paste(" Si existe el filtro y es ", filtro))
@@ -534,14 +532,16 @@ shinyServer(function(input, output, session) {
       }else{
         valores_filtros <- valores_filtros[valores_filtros != dimension_ida]
       }
+      View(tabla_dinamica)
       print( paste("Los posibles filtros son:", valores_filtros   ) )
-      updateRadioButtons(session,"opcionTabla", choices = valores_filtros) 
+      if(length(valores_filtros) > 0 )
+        updateRadioButtons(session,"opcionTabla", choices = valores_filtros, choiceValues =  valores_filtros) 
       
     }
     jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso
     jerarquia_dimension_regreso <<- jerarquia_dimension_regreso
     
-    View(tabla_dinamica)
+
     return(temporal)
     }
 
@@ -628,7 +628,9 @@ shinyServer(function(input, output, session) {
      }
      
      
-     nombres <- nombres[-which( nombres %in% listaExclusion )]
+     nombres <- names(valores)[-which( names(valores) %in% listaExclusion )]
+     print(paste("La lista de exclusión es", listaExclusion))
+     print(paste("La lista de nombres es", nombres))
      return(nombres)
      
    }
