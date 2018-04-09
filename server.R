@@ -493,7 +493,7 @@ shinyServer(function(input, output, session) {
             group_by_(filtro) %>%
             summarise(Devengado =  sum(Devengado) ) %>%
             rename_( Concepto = filtro )
-          dimension_ida <<- dimension_actual
+          dimension_ida <<- filtro # quizás lo correcto es filtro actualmente es dimension_actual
           push(jerarquia_dimension_regreso, dimension_actual)
           valor_dimension <<- col
           push(jerarquia_valor_dimension_regreso, col)  
@@ -515,16 +515,15 @@ shinyServer(function(input, output, session) {
         if( !is.numeric(y) ){
           y <- as.factor( as.character(y) )
           if( nlevels(y) >  1  ){
-            print(x)
+            print(paste("Los niveles son",x, levels(y) ))
             return(x)
           }
         }
       })
-      valores_filtros <- plyr::compact(valores_filtros)
       
-      valores_filtros <- obtenerListaFiltros(valores_filtros)
-
-      View(valores_filtros)
+      
+      
+      valores_filtros <- plyr::compact(valores_filtros)
       
       if (exists("filtro")) {
         print(paste(" Si existe el filtro y es ", filtro))
@@ -532,6 +531,12 @@ shinyServer(function(input, output, session) {
       }else{
         valores_filtros <- valores_filtros[valores_filtros != dimension_ida]
       }
+      
+      valores_filtros <- obtenerListaFiltros(valores_filtros)
+
+      View(valores_filtros)
+      
+
       View(tabla_dinamica)
       print( paste("Los posibles filtros son:", valores_filtros   ) )
       if(length(valores_filtros) > 0 )
@@ -548,6 +553,7 @@ shinyServer(function(input, output, session) {
    obtenerListaFiltros <- function( valores ){
      listaExclusion <- NULL
      nombres <- names(valores)
+     View(nombres)
      if( "Grupo" %in%  nombres ){
        listaExclusion <- c(listaExclusion,"Sub.Grupo")
      }
