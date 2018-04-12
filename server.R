@@ -25,8 +25,8 @@ datos_finalidad <- read.csv('Jerarquia_Finalidad.csv', sep= ';')
 datos_geografico <- read.csv('Jerarquia_Geografico.csv', sep=';')
 datos_objeto_gasto <- read.csv('Jerarquia_ObjetoGasto.csv', sep=';')
 datos_economico <- read.csv('Jerarquia_Economico.csv', sep=';')
-datos_tabla <- read.csv('datos_tabla.csv', sep = ';')
-mapaJson <-  rgdal::readOGR(dsn ="guatemala.geojson")
+mapaJson <-  NULL
+datos_tabla <- NULL
 tabla_temporal <- NULL
 tabla_dinamica <- NULL
 
@@ -82,11 +82,13 @@ valor_dimension = NULL #candidato a ser eliminado
 jerarquia_dimension_regreso = list()  #cambio de estructura de datos
 jerarquia_valor_dimension_regreso = list() #antes era lifo, se pasa a lista
 
-opciones_filtro_inicio <- list("Institución","Finalidad","Región","Grupo",
+
+
+opciones_filtro_inicio <- list("Subgrupo Institucional","Finalidad","Región","Grupo",
   "Económico del gasto" = "Económico.Nivel.1"
 )
 
-mascara_filtro_inicio <- list("Entidad",
+mascara_filtro_inicio <- list("Sub.Grupo",
                            "Finalidad",
                            "Clasificación geográfica",
                            "Objeto del gasto" ,
@@ -142,7 +144,6 @@ shinyServer(function(input, output, session) {
   condition <- reactive({
     refresh = detalleGasto()
     retornoVisualizacion = input$visualizacion
-    print(retornoVisualizacion)
     input$visualizacion
     result = 0
     if( !is.null(refresh)){
@@ -152,20 +153,19 @@ shinyServer(function(input, output, session) {
          }else if( refresh%%2 == 1 && retornoVisualizacion == "treemap"  )
            result =1
         else if( refresh%%2 == 1 && retornoVisualizacion == "tabla")
-          result = 3  
-          gasto_tabla()
+          result = 3
+          #gasto_tabla()
       }
         else if( retornoVisualizacion == "Código.Departamento")
           if( refresh%%2 == 0 ){
             result = 0
           }else if( retornoVisualizacion == "tabla" ){
            result = 3
-          gasto_tabla()
+          #gasto_tabla()
           }
           else
             result = 2
       }
-    print(paste("El resultado es: ", result))
     return(result)
   })
   
@@ -173,7 +173,7 @@ shinyServer(function(input, output, session) {
   visualizacion <- reactive({
     clasificacion = input$filtro
     result = 0
-    if(clasificacion == "Código.Departamento"){
+    if( !is.null(clasificacion) && clasificacion == "Código.Departamento"){
       result = 1
     }
     return(result)
@@ -233,127 +233,126 @@ shinyServer(function(input, output, session) {
   
   
   gasto <- reactive({
-    print( paste("La opción dada por el filtro es ",input$filtro )  )
-    temp <- entidad %>%
-      select(Devengado, input$filtro)%>%
-      group_by_(input$filtro) %>%
-      summarise(devengado = sum(Devengado))
+    temp <- data.frame()
+    if(!is.null(input$filtro)){
+      temp <- entidad %>%
+        select(Devengado, input$filtro)%>%
+        group_by_(input$filtro) %>%
+        summarise(devengado = sum(Devengado))
+    }
     return(temp)
   })
   
   
   gastoTreeMap <- reactive({
+    
+    
     temp <- NULL
     nivel <- getRecordFromTreeMap()
-    print( paste("El dato obtenido es:",  nivel) )
-    switch (input$filtro,
-      'Entidad' = {
-        filtro = pop(jerarquia_institucional_ida)
-        push(jerarquia_institucional_regreso, paste0("'",filtro, "'") )
-        if( is.null(nivel) || trimws(nivel) == "" ){
-          temp <- datos_intitucional %>%
-            select_(filtro, "Devengado") %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado)) 
-        }else{
-          print( paste("Los datos relevantes son: ", app.env$nivelActivo, filtro, nivel) )
-          va <- app.env$nivelActivo
-          temp <- datos_intitucional %>%
-            select_(app.env$nivelActivo,  filtro, "Devengado") %>%
-            filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado))
-        }
-        jerarquia_institucional_ida <<- jerarquia_institucional_ida
-        jerarquia_institucional_regreso <<- jerarquia_institucional_regreso
-        app.env$nivelActivo = filtro
-      }, 
-      'Finalidad' = {
-        filtro = pop(jerarquia_finalidad_ida)
-        push(jerarquia_finalidad_regreso, paste0("'",filtro, "'") )
-        if( is.null(nivel) || trimws(nivel) == "" ){
-          temp <- datos_finalidad %>%
-            select_(filtro, "Devengado") %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado)) 
-        }else{
-          print( paste("Los datos relevantes son: ", app.env$nivelActivo, filtro, nivel) )
-          va <- app.env$nivelActivo
-          temp <- datos_finalidad %>%
-            select_(app.env$nivelActivo,  filtro, "Devengado") %>%
-            filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado))
-        }
-        jerarquia_finalidad_ida <<- jerarquia_finalidad_ida
-        jerarquia_finalidad_regreso <<- jerarquia_finalidad_regreso
-        app.env$nivelActivo = filtro
-      }, 
-      'Código.Departamento' = {
-        filtro = pop(jerarquia_geografico_ida)
-        push(jerarquia_geografico_regreso, paste0("'",filtro, "'") )
-        if( is.null(nivel) || trimws(nivel) == "" ){
-          temp <- datos_geografico %>%
-            select_(filtro, "Devengado") %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado)) 
-        }else{
-          print( paste("Los datos relevantes son: ", app.env$nivelActivo, filtro, nivel) )
-          va <- app.env$nivelActivo
-          temp <- datos_geografico %>%
-            select_(app.env$nivelActivo,  filtro, "Devengado") %>%
-            filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado))
-        }
-        jerarquia_geografico_ida <<- jerarquia_geografico_ida
-        jerarquia_geografico_regreso <<- jerarquia_geografico_regreso
-        app.env$nivelActivo = filtro
-      }, 
-      'Objeto del gasto' = {
-        filtro = pop(jerarquia_objeto_gasto_ida)
-        push(jerarquia_objeto_gasto_regreso, paste0("'",filtro, "'") )
-        if( is.null(nivel) || trimws(nivel) == "" ){
-          temp <- datos_objeto_gasto %>%
-            select_(filtro, "Devengado") %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado)) 
-        }else{
-          print( paste("Los datos relevantes son: ", app.env$nivelActivo, filtro, nivel) )
-          va <- app.env$nivelActivo
-          temp <- datos_objeto_gasto %>%
-            select_(app.env$nivelActivo,  filtro, "Devengado") %>%
-            filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado))
-        }
-        jerarquia_objeto_gasto_ida <<- jerarquia_objeto_gasto_ida
-        jerarquia_objeto_gasto_regreso <<- jerarquia_objeto_gasto_regreso
-        app.env$nivelActivo = filtro
-      }, 
-      'Economico' = {
-        filtro = pop(jerarquia_economico_ida)
-        push(jerarquia_economico_regreso, paste0("'",filtro, "'") )
-        if( is.null(nivel) || trimws(nivel) == "" ){
-          temp <- datos_economico %>%
-            select_(filtro, "Devengado") %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado)) 
-        }else{
-          print( paste("Los datos relevantes son: ", app.env$nivelActivo, filtro, nivel) )
-          va <- app.env$nivelActivo
-          temp <- datos_economico %>%
-            select_(app.env$nivelActivo,  filtro, "Devengado") %>%
-            filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
-            group_by_(filtro) %>%
-            summarise(Devengado = sum(Devengado))
-        }
-        jerarquia_economico_ida <<- jerarquia_economico_ida
-        jerarquia_economico_regreso <<- jerarquia_economico_regreso
-        app.env$nivelActivo = filtro
-      }
-    )
-    print(temp)
+    if( !is.null(input$filtro) ){
+      switch (input$filtro,
+              'Entidad' = {
+                filtro = pop(jerarquia_institucional_ida)
+                push(jerarquia_institucional_regreso, paste0("'",filtro, "'") )
+                if( is.null(nivel) || trimws(nivel) == "" ){
+                  temp <- datos_intitucional %>%
+                    select_(filtro, "Devengado") %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado)) 
+                }else{
+                  va <- app.env$nivelActivo
+                  temp <- datos_intitucional %>%
+                    select_(app.env$nivelActivo,  filtro, "Devengado") %>%
+                    filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado))
+                }
+                jerarquia_institucional_ida <<- jerarquia_institucional_ida
+                jerarquia_institucional_regreso <<- jerarquia_institucional_regreso
+                app.env$nivelActivo = filtro
+              }, 
+              'Finalidad' = {
+                filtro = pop(jerarquia_finalidad_ida)
+                push(jerarquia_finalidad_regreso, paste0("'",filtro, "'") )
+                if( is.null(nivel) || trimws(nivel) == "" ){
+                  temp <- datos_finalidad %>%
+                    select_(filtro, "Devengado") %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado)) 
+                }else{
+                  va <- app.env$nivelActivo
+                  temp <- datos_finalidad %>%
+                    select_(app.env$nivelActivo,  filtro, "Devengado") %>%
+                    filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado))
+                }
+                jerarquia_finalidad_ida <<- jerarquia_finalidad_ida
+                jerarquia_finalidad_regreso <<- jerarquia_finalidad_regreso
+                app.env$nivelActivo = filtro
+              }, 
+              'Código.Departamento' = {
+                filtro = pop(jerarquia_geografico_ida)
+                push(jerarquia_geografico_regreso, paste0("'",filtro, "'") )
+                if( is.null(nivel) || trimws(nivel) == "" ){
+                  temp <- datos_geografico %>%
+                    select_(filtro, "Devengado") %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado)) 
+                }else{
+                  va <- app.env$nivelActivo
+                  temp <- datos_geografico %>%
+                    select_(app.env$nivelActivo,  filtro, "Devengado") %>%
+                    filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado))
+                }
+                jerarquia_geografico_ida <<- jerarquia_geografico_ida
+                jerarquia_geografico_regreso <<- jerarquia_geografico_regreso
+                app.env$nivelActivo = filtro
+              }, 
+              'Objeto del gasto' = {
+                filtro = pop(jerarquia_objeto_gasto_ida)
+                push(jerarquia_objeto_gasto_regreso, paste0("'",filtro, "'") )
+                if( is.null(nivel) || trimws(nivel) == "" ){
+                  temp <- datos_objeto_gasto %>%
+                    select_(filtro, "Devengado") %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado)) 
+                }else{
+                  va <- app.env$nivelActivo
+                  temp <- datos_objeto_gasto %>%
+                    select_(app.env$nivelActivo,  filtro, "Devengado") %>%
+                    filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado))
+                }
+                jerarquia_objeto_gasto_ida <<- jerarquia_objeto_gasto_ida
+                jerarquia_objeto_gasto_regreso <<- jerarquia_objeto_gasto_regreso
+                app.env$nivelActivo = filtro
+              }, 
+              'Economico' = {
+                filtro = pop(jerarquia_economico_ida)
+                push(jerarquia_economico_regreso, paste0("'",filtro, "'") )
+                if( is.null(nivel) || trimws(nivel) == "" ){
+                  temp <- datos_economico %>%
+                    select_(filtro, "Devengado") %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado)) 
+                }else{
+                  va <- app.env$nivelActivo
+                  temp <- datos_economico %>%
+                    select_(app.env$nivelActivo,  filtro, "Devengado") %>%
+                    filter_( .dots = paste0(app.env$nivelActivo, "=='", nivel, "'")  ) %>%
+                    group_by_(filtro) %>%
+                    summarise(Devengado = sum(Devengado))
+                }
+                jerarquia_economico_ida <<- jerarquia_economico_ida
+                jerarquia_economico_regreso <<- jerarquia_economico_regreso
+                app.env$nivelActivo = filtro
+              }
+      )
+    }
     return(temp)
   })
   
@@ -362,17 +361,19 @@ shinyServer(function(input, output, session) {
     par(mar=c(0,0,0,0), xaxs='i', yaxs='i') 
     plot(c(0,1), c(0,1),axes=F, col="white")
     variable <- names( temp )[1]
-    .tm <<- treemap(temp,
-                    index= variable,
-                    vSize="Devengado",
-                    vColor="Devengado",
-                    type="value",
-                    title = "",
-                    palette="Purples",
-                    border.col ="white",
-                    position.legend="right",
-                    fontsize.labels = 16,
-                    title.legend="Escala de colores")
+    if( !is.null(temp) ){
+      .tm <<- treemap(temp,
+                      index= variable,
+                      vSize="Devengado",
+                      vColor="Devengado",
+                      type="value",
+                      title = "",
+                      palette="Purples",
+                      border.col ="white",
+                      position.legend="right",
+                      fontsize.labels = 16,
+                      title.legend="Escala de colores")
+    }
   })
   
   
@@ -387,7 +388,6 @@ shinyServer(function(input, output, session) {
     x <- input$click_treemap$x
     y <- input$click_treemap$y
     treemap_clicked$center <- c(x,y)
-    print(paste("El centro es: ", treemap_clicked$center) )
     
     if(is.null(treemap_clicked$for_condition)){
       treemap_clicked$for_condition=c(x,y)
@@ -415,24 +415,32 @@ shinyServer(function(input, output, session) {
     #filter(pop_data,Country==col)
   })
   
-  output$mapa <- renderLeaflet({ 
-  informacionMapa <- sp::merge(mapaJson, gasto(), by.x="Código.Departamento" )
-  print(gasto())
-  qpal <- colorQuantile("YlGn", informacionMapa$devengado, n = 5, na.color = "#bdbdbd")
-
-
-  lat <- 16
-  lng <- -89.5
-  zoom <- 7
-  
-      mapa <- leaflet() %>%
+  output$mapa <- renderLeaflet({
+  if(is.null(mapaJson)){
+    withProgress(message = "Está cargando el mapa", value = 0, {
+      mapaJson <<- rgdal::readOGR(dsn ="guatemala.geojson")
+    })
+  }
+  datos <- gasto()
+  if( nrow(datos) > 0  ){
+    informacionMapa <- sp::merge(mapaJson, datos, by.x="Código.Departamento" )
+    qpal <- colorQuantile("YlGn", informacionMapa$devengado, n = 5, na.color = "#bdbdbd")
+    
+    
+    lat <- 16
+    lng <- -89.5
+    zoom <- 7
+    
+    mapa <- leaflet() %>%
       addProviderTiles(providers$CartoDB.Positron)%>%
-        #addTiles()%>%
-        setView(lat = lat, lng = lng, zoom = zoom)%>%
-        clearShapes() %>%
-        clearControls() %>%
-        addPolygons(data = informacionMapa, fillColor = ~qpal(devengado), fillOpacity = 0.7,
-                    color = "white", weight = 2)
+      #addTiles()%>%
+      setView(lat = lat, lng = lng, zoom = zoom)%>%
+      clearShapes() %>%
+      clearControls() %>%
+      addPolygons(data = informacionMapa, fillColor = ~qpal(devengado), fillOpacity = 0.7,
+                  color = "white", weight = 2)
+  }
+
     
 
 
@@ -440,8 +448,6 @@ shinyServer(function(input, output, session) {
   
     output$tabla <- DT::renderDataTable({ 
       datos <- as.data.frame( gasto_tabla() )
-      #gasto_tabla()
-      print(paste("La tabla temporal es: ", tabla_temporal))
       tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE) )
       })
     
@@ -456,10 +462,13 @@ shinyServer(function(input, output, session) {
 
     
     gasto_tabla <- function(filtro = '', variable = ''){
-      print( paste("La opción dada por el filtro es ",filtro )  )
-      print( paste("La opción dada por la variable es ",variable )  )
+      if( is.null(datos_tabla)){
+        withProgress(message ='Leyendo la información', value = 0, {
+          datos_tabla <<- read.csv('datos_tabla.csv', sep = ';')  
+        }) 
+        
+      }
       var <-  variable
-      print( paste("La fila seleccionada es: ",  var) )
       temporal <- NULL
       if( is.null(var) || var == '' ){
         temporal <- datos_tabla %>%
@@ -467,7 +476,6 @@ shinyServer(function(input, output, session) {
           mutate(Concepto = 'Gasto Total') 
       }else{
         resultado <- tabla_temporal[var, "Concepto"] 
-        print(resultado)
         if(resultado == "Gasto Total"){
           temporal <- datos_tabla %>%
             group_by_(filtro) %>%
@@ -521,8 +529,6 @@ shinyServer(function(input, output, session) {
     jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso
     jerarquia_dimension_regreso <<- jerarquia_dimension_regreso
     
-    print(jerarquia_dimension_regreso)
-    print(jerarquia_valor_dimension_regreso)
     return(temporal)
     }
 
@@ -535,7 +541,6 @@ shinyServer(function(input, output, session) {
           if( !is.numeric(y) ){
             y <- as.factor( as.character(y) )
             if( nlevels(y) >  1  ){
-              print(paste("Los niveles son",x, levels(y) ))
               return(x)
             }
           }
@@ -546,7 +551,6 @@ shinyServer(function(input, output, session) {
         valores_filtros <- plyr::compact(valores_filtros)
         
         if (exists("filtro")) {
-          print(paste(" Si existe el filtro y es ", filtro))
           valores_filtros <- valores_filtros[valores_filtros != filtro]
         }else{
           valores_filtros <- valores_filtros[valores_filtros != dimension_ida]
@@ -557,8 +561,6 @@ shinyServer(function(input, output, session) {
         #View(valores_filtros)
         
         
-        #View(tabla_dinamica)
-        print( paste("Los posibles filtros son:", valores_filtros   ) )
         if(length(valores_filtros) > 0 )
           updateRadioButtons(session,"opcionTabla", choices = valores_filtros, choiceValues =  valores_filtros, inline = T) 
       }else{
@@ -595,7 +597,7 @@ shinyServer(function(input, output, session) {
                 rename_(Concepto = jerarquia_dimension_regreso[[z]])
                 dimension_ida <<- jerarquia_dimension_regreso[[z]]
               }
-            }else if( z == length(jerarquia_dimension_regreso )-1 ){
+            }else if( z == 2 ){
               tabla_temp <- datos_tabla %>%
                 filter_(.dots = .dots)
             }else{
@@ -609,8 +611,8 @@ shinyServer(function(input, output, session) {
       jerarquia_valor_dimension_regreso <<- jerarquia_valor_dimension_regreso[c(1:length(jerarquia_valor_dimension_regreso) -1 )]
       #View(tabla_temp)
       tabla_temporal <<- tabla_temp
-      View(tabla_temporal)
-      View(tabla_dinamica)
+      #View(tabla_temporal)
+      #View(tabla_dinamica)
     }
     
     
@@ -618,8 +620,10 @@ shinyServer(function(input, output, session) {
      listaExclusion <- NULL
      nombres <- names(valores)
      #View(nombres)
-     if( "Grupo" %in%  nombres ){
-       listaExclusion <- c(listaExclusion,"Sub.Grupo")
+     if( "Sub.Grupo" %in%  nombres ){
+       listaExclusion <- c(listaExclusion,"Entidad","Unidad.Ejecutora")
+       nombres <- subset( nombres, !( nombres %in% c("Entidad","Unidad.Ejecutora") ) )
+       
      }
      
      if( "Entidad" %in% nombres ){
@@ -699,8 +703,6 @@ shinyServer(function(input, output, session) {
      
      
      nombres <- names(valores)[-which( names(valores) %in% listaExclusion )]
-     print(paste("La lista de exclusión es", listaExclusion))
-     print(paste("La lista de nombres es", nombres))
      return(nombres)
      
    }
@@ -716,20 +718,12 @@ shinyServer(function(input, output, session) {
       tablita <- gasto_tabla(filtro, variable)
       output$tabla <- DT::renderDataTable({ 
         datos <- as.data.frame( tablita )
-        #gasto_tabla()
-        print(paste("La tablita es : ", names(tablita)[1] ) )
-        print(paste("La tabla temporal es: ", tabla_temporal))
         tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE) )
+        })
       })
-      
-
-
-
-    })
     
     
     observeEvent(input$retroceder_tabla, {
-      print("Botón atrás")
       tablita <- construirTablaDinamica()
       output$tabla <- DT::renderDataTable({ 
         datos <- as.data.frame( tablita )
