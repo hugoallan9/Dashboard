@@ -59,7 +59,9 @@ dashboardPage(
         tags$h1("Visualización con tabla"),
         DT::dataTableOutput("tabla"),
         uiOutput("Avanzar"), 
-        uiOutput("Atras")
+        uiOutput("Atras"),
+        uiOutput("Hierarchy"),
+        d3treeOutput(outputId="d3",width = '1200px',height = '800px')
       )
     )
     

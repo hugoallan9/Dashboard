@@ -7,113 +7,73 @@
 #    http://shiny.rstudio.com/
 #
 
-require(treemap)
-require(dplyr)
-require(shiny)
-require(gridBase)
-require(RColorBrewer)
-require(plotly)
-require(leaflet)
-require(flifo)
-require(lazyeval)
-
-
-ejecucionMes <- read.csv('EjecucionMensual.csv')
-entidad <- read.csv('Sabana_de_prueba_TF.csv', sep =  ';')
-datos_intitucional <- read.csv('Jerarquia_Entidad.csv', sep=";")
-datos_finalidad <- read.csv('Jerarquia_Finalidad.csv', sep= ';')
-datos_geografico <- read.csv('Jerarquia_Geografico.csv', sep=';')
-datos_objeto_gasto <- read.csv('Jerarquia_ObjetoGasto.csv', sep=';')
-datos_economico <- read.csv('Jerarquia_Economico.csv', sep=';')
-mapaJson <-  NULL
-datos_tabla <- NULL
-tabla_temporal <- NULL
-tabla_dinamica <- NULL
-
-
-# Setting up the environmet for global variables --------------------------
-app.env <- new.env()
-
-app.env$nivelActivo <- ""
-
-jerarquia_institucional_ida = lifo()
-push(jerarquia_institucional_ida, "Unidad.Ejecutora" )
-push(jerarquia_institucional_ida, "Entidad" )
-
-jerarquia_institucional_regreso = lifo()
-
-jerarquia_finalidad_ida = lifo()
-push(jerarquia_finalidad_ida, "División")
-push(jerarquia_finalidad_ida, "Función")
-push(jerarquia_finalidad_ida, "Finalidad")
-
-
-jerarquia_finalidad_regreso = lifo()
-
-jerarquia_geografico_ida = lifo()
-push(jerarquia_geografico_ida, "Municipio")
-push(jerarquia_geografico_ida, "Departamento")
-push(jerarquia_geografico_ida, "Región")
-
-jerarquia_geografico_regreso = lifo()
-
-jerarquia_objeto_gasto_ida = lifo()
-push(jerarquia_objeto_gasto_ida, "Renglón")
-push(jerarquia_objeto_gasto_ida, "Sub.Grupo.Gasto")
-push(jerarquia_objeto_gasto_ida, "Grupo.Gasto")
-
-jerarquia_objeto_gasto_regreso = lifo()
-
-jerarquia_economico_ida = lifo()
-push(jerarquia_economico_ida, "Clasificación.Económica.Gasto")
-push(jerarquia_economico_ida, "Económico.Nivel.Operativo")
-push(jerarquia_economico_ida, "Económico.Nivel.4")
-push(jerarquia_economico_ida, "Económico.Nivel.3")
-push(jerarquia_economico_ida, "Económico.Nivel.2")
-#push(jerarquia_economico_ida, "Económico.Nivel.1")
-
-
-jerarquia_economico_regreso = lifo()
-
-
-dimension_ida = NULL # candidato a ser eliminado
-valor_dimension = NULL #candidato a ser eliminado
-
-jerarquia_dimension_regreso = list()  #cambio de estructura de datos
-jerarquia_valor_dimension_regreso = list() #antes era lifo, se pasa a lista
-
-
-
-opciones_filtro_inicio <- list("Subgrupo Institucional","Finalidad","Región","Grupo",
-  "Económico del gasto" = "Económico.Nivel.1"
-)
-
-mascara_filtro_inicio <- list("Sub.Grupo",
-                           "Finalidad",
-                           "Clasificación geográfica",
-                           "Objeto del gasto" ,
-                           "Económico del gasto" 
-)
-### Handle cliks on a treemap
-tmLocate <- function(coor, tmSave) {
-    tm <- tmSave$tm
-    
-    # retrieve selected rectangle
-    rectInd <- which(tm$x0 < coor[1] &
-                       (tm$x0 + tm$w) > coor[1] &
-                       tm$y0 < coor[2] &
-                       (tm$y0 + tm$h) > coor[2])
-    
-    return(tm[rectInd[1], ])
-    
-  }
 
 
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output, session) {
+
+# Variables para uso en esta sesión ---------------------------------------
+
+  mapaJson <-  NULL
+  datos_tabla <- NULL
+  tabla_temporal <- NULL
+  tabla_dinamica <- NULL
+  
+  
+  # Setting up the environmet for global variables --------------------------
   app.env <- new.env()
-  output$condition <- renderText({
+  
+  app.env$nivelActivo <- ""
+  
+  jerarquia_institucional_ida = lifo()
+  push(jerarquia_institucional_ida, "Unidad.Ejecutora" )
+  push(jerarquia_institucional_ida, "Entidad" )
+  
+  jerarquia_institucional_regreso = lifo()
+  
+  jerarquia_finalidad_ida = lifo()
+  push(jerarquia_finalidad_ida, "División")
+  push(jerarquia_finalidad_ida, "Función")
+  push(jerarquia_finalidad_ida, "Finalidad")
+  
+  
+  jerarquia_finalidad_regreso = lifo()
+  
+  jerarquia_geografico_ida = lifo()
+  push(jerarquia_geografico_ida, "Municipio")
+  push(jerarquia_geografico_ida, "Departamento")
+  push(jerarquia_geografico_ida, "Región")
+  
+  jerarquia_geografico_regreso = lifo()
+  
+  jerarquia_objeto_gasto_ida = lifo()
+  push(jerarquia_objeto_gasto_ida, "Renglón")
+  push(jerarquia_objeto_gasto_ida, "Sub.Grupo.Gasto")
+  push(jerarquia_objeto_gasto_ida, "Grupo.Gasto")
+  
+  jerarquia_objeto_gasto_regreso = lifo()
+  
+  jerarquia_economico_ida = lifo()
+  push(jerarquia_economico_ida, "Clasificación.Económica.Gasto")
+  push(jerarquia_economico_ida, "Económico.Nivel.Operativo")
+  push(jerarquia_economico_ida, "Económico.Nivel.4")
+  push(jerarquia_economico_ida, "Económico.Nivel.3")
+  push(jerarquia_economico_ida, "Económico.Nivel.2")
+  #push(jerarquia_economico_ida, "Económico.Nivel.1")
+  
+  
+  jerarquia_economico_regreso = lifo()
+  
+  
+  dimension_ida = NULL # candidato a ser eliminado
+  valor_dimension = NULL #candidato a ser eliminado
+  
+  jerarquia_dimension_regreso = list()  #cambio de estructura de datos
+  jerarquia_valor_dimension_regreso = list() #antes era lifo, se pasa a lista
+  
+  
+    output$condition <- renderText({
     condition()
   })
   
@@ -448,7 +408,7 @@ shinyServer(function(input, output, session) {
   
     output$tabla <- DT::renderDataTable({ 
       datos <- as.data.frame( gasto_tabla() )
-      tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE) )
+      tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE,language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')),  style = "bootstrap"   ) %>% DT::formatCurrency("Devengado", currency = "Q")
       })
     
     output$filtroTabla <- renderUI({
@@ -718,7 +678,8 @@ shinyServer(function(input, output, session) {
       tablita <- gasto_tabla(filtro, variable)
       output$tabla <- DT::renderDataTable({ 
         datos <- as.data.frame( tablita )
-        tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE) )
+        tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE, language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')) ) %>%
+          DT::formatCurrency("Devengado", currency = "Q")
         })
       })
     
@@ -727,7 +688,7 @@ shinyServer(function(input, output, session) {
       tablita <- construirTablaDinamica()
       output$tabla <- DT::renderDataTable({ 
         datos <- as.data.frame( tablita )
-        tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE) )
+        tabla_inutil <<- DT::datatable( tabla_temporal, options = list(orderClasses = TRUE))
       })
       
       actualizarFiltro()
@@ -738,8 +699,13 @@ shinyServer(function(input, output, session) {
       
     })
 
-      
-      
+    output$Hierarchy <- renderUI({
+      Hierarchy=names(datos_tabla)
+      Hierarchy=head(Hierarchy,-1)
+      selectizeInput("Hierarchy","Árbol de jerarquía",
+                     choices = Hierarchy,multiple=T,selected = Hierarchy,
+                     options=list(plugins=list('drag_drop','remove_button')))
+    })
       
 
   
